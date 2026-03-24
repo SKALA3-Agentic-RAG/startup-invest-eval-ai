@@ -27,8 +27,9 @@ PDF_SOURCE_DIR: Path = (
     if _pdf_src_env
     else (_PROJECT_ROOT / "data" / "pdfs")
 )
+# Raw LLM markdown report and final PDF report outputs
+RAW_REPORT_OUTPUT_PATH: Path = _PROJECT_ROOT / "output" / "raw_report"
 REPORT_OUTPUT_PATH: Path = _PROJECT_ROOT / "output" / "reports"
-REPORT_PDF_OUTPUT_PATH: Path = _PROJECT_ROOT / "outputs" / "pdfs"
 CHECKPOINT_DB_PATH: Path = _PROJECT_ROOT / "output" / "checkpoints.db"
 # Sentence Transformers / Hugging Face Hub weights (not ~/.cache)
 _hf_cache_env = os.getenv("HF_MODEL_CACHE_PATH")

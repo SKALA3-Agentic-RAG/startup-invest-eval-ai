@@ -110,20 +110,20 @@ def main() -> None:
         logging.warning("Run finished with error flag: %s", err)
 
     if report_md:
-        app_config.REPORT_OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
+        app_config.RAW_REPORT_OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
         ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        out_path = app_config.REPORT_OUTPUT_PATH / f"{ts}.md"
+        out_path = app_config.RAW_REPORT_OUTPUT_PATH / f"{ts}.md"
         out_path.write_text(report_md, encoding="utf-8")
-        logging.info("Wrote report to %s", out_path)
+        logging.info("Wrote raw markdown report to %s", out_path)
         try:
-            app_config.REPORT_PDF_OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-            pdf_path = app_config.REPORT_PDF_OUTPUT_PATH / f"{ts}.pdf"
+            app_config.REPORT_OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
+            pdf_path = app_config.REPORT_OUTPUT_PATH / f"{ts}.pdf"
             markdown_to_pdf(report_md, pdf_path)
-            logging.info("Wrote PDF report to %s", pdf_path)
+            logging.info("Wrote final PDF report to %s", pdf_path)
         except Exception as exc:  # noqa: BLE001
             logging.warning("PDF export skipped: %s", exc)
     else:
-        logging.warning("No final_report in graph state; nothing written to output/reports.")
+        logging.warning("No final_report in graph state; nothing written to output/raw_report.")
 
 
 if __name__ == "__main__":

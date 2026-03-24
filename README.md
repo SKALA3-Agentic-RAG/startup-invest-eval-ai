@@ -32,16 +32,18 @@
 - Report Writer Agent: 영문 분석 결과를 바탕으로 한국어 투자 심사 보고서 작성
 
 ## Architecture
-(그래프 이미지)
+
+![Startup Investment Flowchart](images/startup_investment_flowchart_clean.svg)
 
 ## Directory Structure
+``` Plain text
 ├── data/                  # 로보틱스 스타트업 및 산업 분석 PDF 문서
 ├── agents/                # 평가 기준별 Agent 모듈
 ├── prompts/               # 프롬프트 템플릿
 ├── output/                # 평가 결과(reports) 및 VectorDB 인덱스(vectordb) 저장
 ├── main.py                # 실행 스크립트
 └── README.md
-
+```
 ## Contributors 
 - 김지온 : 입력 키 정의 및 투자 가이드라인 Metrics 설계, 프롬프트 입력 키 정의 및 시스템 프롬프트 엔지니어링
 - 김철희 : End-to-End Query 파이프라인 설계 및 전체 아키텍처 조율, LangGraph Node 연결
