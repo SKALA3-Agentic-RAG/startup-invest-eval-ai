@@ -37,6 +37,10 @@ class GraphState(TypedDict, total=False):
         str,
         Doc("User research topic from the CLI ``--query`` argument."),
     ]
+    report_date: Annotated[
+        str,
+        Doc("Report date string (YYYY-MM-DD) injected by ``main`` and used by ``report_agent``."),
+    ]
     macro_context: Annotated[
         str | None,
         Doc("Macro and AI-sector context produced by ``macro_agent``."),

@@ -25,4 +25,5 @@ dependencies = [
     "transformers>=4.51.0",
     "torch>=2.2.0",
     "numpy>=1.26.0",
+    "reportlab>=4.2.0",
 ]

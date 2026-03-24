@@ -13,6 +13,7 @@ import config as app_config
 from agents.graph import build_graph
 from memory.checkpointer import async_checkpointer
 from tools.ingest_pdfs import ingest_from_folder
+from tools.report_export import markdown_to_pdf
 
 
 async def _run_async(lg_config: dict, initial_state: dict) -> dict:
@@ -87,6 +88,7 @@ def main() -> None:
 
     initial_state = {
         "query": args.query,
+        "report_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "macro_context": None,
         "startups": [],
         "current_index": 0,
@@ -113,6 +115,13 @@ def main() -> None:
         out_path = app_config.REPORT_OUTPUT_PATH / f"{ts}.md"
         out_path.write_text(report_md, encoding="utf-8")
         logging.info("Wrote report to %s", out_path)
+        try:
+            app_config.REPORT_PDF_OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
+            pdf_path = app_config.REPORT_PDF_OUTPUT_PATH / f"{ts}.pdf"
+            markdown_to_pdf(report_md, pdf_path)
+            logging.info("Wrote PDF report to %s", pdf_path)
+        except Exception as exc:  # noqa: BLE001
+            logging.warning("PDF export skipped: %s", exc)
     else:
         logging.warning("No final_report in graph state; nothing written to output/reports.")
 

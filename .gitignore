@@ -46,7 +46,6 @@ data/processed/
 # PDFs in data/pdfs/ are ignored via *.pdf below; .gitkeep keeps the folder in git.
 *.csv
 *.jsonl
-*.pdf
 
 # LangGraph SQLite checkpoints (local)
 output/checkpoints.db
@@ -76,3 +75,4 @@ Thumbs.db
 
 # output
 output/
+outputs/
