@@ -14,6 +14,14 @@ import config
 logger = logging.getLogger(__name__)
 
 
+def _doc_identity(doc: Document) -> str:
+    """Stable id for deduping retrieved documents."""
+    src = str((doc.metadata or {}).get("source", ""))
+    page = str((doc.metadata or {}).get("page", ""))
+    preview = (doc.page_content or "")[:160]
+    return f"{src}|{page}|{preview}"
+
+
 def _store_path(path: Optional[str] = None) -> str:
     return path if path is not None else str(config.FAISS_INDEX_PATH)
 
@@ -53,11 +61,43 @@ def load_index(path: str) -> FAISS:
 
 
 def search(query: str, k: int, *, path: Optional[str] = None) -> List[Document]:
-    """Similarity search against the on-disk index."""
+    """
+    Precision-oriented FAISS search.
+
+    Strategy:
+    1) gather broad candidates via similarity + MMR,
+    2) dedupe,
+    3) rerank by similarity score (query-focused),
+    4) return top-k contexts.
+    """
     store = _try_load_index(path)
     if store is None:
         return []
-    return store.similarity_search(query, k=k)
+    fetch_k = max(config.RAG_FETCH_K, k)
+
+    # Candidate pool: relevance + diversity
+    sim_candidates = store.similarity_search(query, k=fetch_k)
+    mmr_candidates = store.max_marginal_relevance_search(
+        query,
+        k=fetch_k,
+        fetch_k=fetch_k * 2,
+        lambda_mult=config.RAG_MMR_LAMBDA,
+    )
+
+    merged: list[Document] = []
+    seen: set[str] = set()
+    for d in sim_candidates + mmr_candidates:
+        key = _doc_identity(d)
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(d)
+
+    # Query-centric reranking for better MRR
+    rescored = store.similarity_search_with_score(query, k=fetch_k)
+    rescored_rank = {_doc_identity(doc): i for i, (doc, _score) in enumerate(rescored)}
+    merged.sort(key=lambda d: rescored_rank.get(_doc_identity(d), 10**9))
+    return merged[:k]
 
 
 def max_marginal_relevance_search(

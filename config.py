@@ -27,6 +27,7 @@ PDF_SOURCE_DIR: Path = (
     if _pdf_src_env
     else (_PROJECT_ROOT / "data" / "pdfs")
 )
+RAG_EVAL_DATASET_PATH: Path = _PROJECT_ROOT / "data" / "eval" / "rag_eval.jsonl"
 # Raw LLM markdown report and final PDF report outputs
 RAW_REPORT_OUTPUT_PATH: Path = _PROJECT_ROOT / "output" / "raw_report"
 REPORT_OUTPUT_PATH: Path = _PROJECT_ROOT / "output" / "reports"
@@ -48,6 +49,9 @@ MAX_PARALLEL_STARTUP_EVALS: int = max(1, int(os.getenv("MAX_PARALLEL_STARTUP_EVA
 MAX_PARALLEL_SEARCH_ENRICH: int = max(1, int(os.getenv("MAX_PARALLEL_SEARCH_ENRICH", "3")))
 OPENAI_RETRY_MAX_ATTEMPTS: int = max(1, int(os.getenv("OPENAI_RETRY_MAX_ATTEMPTS", "4")))
 OPENAI_RETRY_BASE_SECONDS: float = max(0.1, float(os.getenv("OPENAI_RETRY_BASE_SECONDS", "1.5")))
+# FAISS retrieval tuning (helps Hit Rate@k / MRR).
+RAG_FETCH_K: int = max(5, int(os.getenv("RAG_FETCH_K", "30")))
+RAG_MMR_LAMBDA: float = min(1.0, max(0.0, float(os.getenv("RAG_MMR_LAMBDA", "0.35"))))
 # PDF 청킹 (``tools/pdf_plumber_loader.chunk_pdf_documents`` — 참고 pdf_preprocessor와 동일)
 # chunk_size: Qwen3 임베딩 최대 길이(토큰) 대비 문자 기준 512 — 검색 해상도 균형.
 # chunk_overlap: 경계 문맥 유지용 64자.

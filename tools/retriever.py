@@ -23,10 +23,10 @@ def _normalize_url(url: str) -> str:
 
 
 def faiss_mmr_documents(query: str, k: int = 5, fetch_k: int = 20) -> List[Document]:
-    """Maximal marginal relevance over the persisted FAISS index."""
-    return vector_store.max_marginal_relevance_search(
-        query, k=k, fetch_k=fetch_k, path=str(config.FAISS_INDEX_PATH)
-    )
+    """High-precision FAISS context retrieval over the persisted index."""
+    # Keep signature for compatibility; delegate to tuned search path.
+    _ = fetch_k
+    return vector_store.search(query, k=k, path=str(config.FAISS_INDEX_PATH))
 
 
 def web_results_as_documents(query: str) -> List[Document]:
