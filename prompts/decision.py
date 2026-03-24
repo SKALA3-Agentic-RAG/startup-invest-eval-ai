@@ -20,7 +20,7 @@ PROMPT = ChatPromptTemplate.from_messages(
                   "market_score": 0-10,
                   "total_score": 0-10,
                   "rank": 1+,
-                  "decision": "GO|WATCH|PASS",
+                  "decision": "GO or WATCH or PASS",
                   "rationale": "...",
                   "key_risks": ["...", "..."]
                 }}
