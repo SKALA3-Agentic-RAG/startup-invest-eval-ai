@@ -51,3 +51,8 @@
 - 박소윤 : 타겟 스타트업 문서 조사, PDF Loading 및 FAISS 기반 VectorDB 인덱싱, 임배딩 전담
 - 서제임스 : 아키텍처 설계, LangGraph Node 생성 및 상태 연결, LangSmith 연동 및 에러 디버깅
 - 최유진 : 프롬프트 입력 키 정의 및 시스템 프롬프트 엔지니어링, VectorDB 임베딩 보조
+
+## 실행 방법
+```
+uv run python main.py --query $Query
+```
