@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 import config as app_config
 from agents.graph import build_graph
 from memory.checkpointer import async_checkpointer
+from tools.ingest_pdfs import ingest_from_folder
 
 
 async def _run_async(lg_config: dict, initial_state: dict) -> dict:
@@ -47,6 +48,17 @@ def main() -> None:
         default=None,
         help="LangGraph thread id for checkpointing (default: random UUID).",
     )
+    parser.add_argument(
+        "--skip-ingest",
+        action="store_true",
+        help="Skip PDF->FAISS ingest before running the graph.",
+    )
+    parser.add_argument(
+        "--ingest-engine",
+        choices=("auto", "pdfplumber", "pymupdf"),
+        default="auto",
+        help="Ingest engine for PDF loading (auto/pdfplumber/pymupdf).",
+    )
     args = parser.parse_args()
 
     if not app_config.OPENAI_API_KEY:
@@ -54,6 +66,21 @@ def main() -> None:
         sys.exit(1)
     if not app_config.TAVILY_API_KEY:
         logging.warning("TAVILY_API_KEY missing — web search will return no results.")
+
+    if not args.skip_ingest:
+        logging.info(
+            "Ingesting PDFs from %s into FAISS (engine=%s)",
+            app_config.PDF_SOURCE_DIR,
+            args.ingest_engine,
+        )
+        ingest_code = ingest_from_folder(engine=args.ingest_engine)
+        if ingest_code != 0:
+            logging.error(
+                "PDF ingest failed or no documents found in %s. "
+                "Add PDFs then rerun, or use --skip-ingest to run anyway.",
+                app_config.PDF_SOURCE_DIR,
+            )
+            sys.exit(1)
 
     thread_id = args.thread_id or str(uuid.uuid4())
     lg_config = {"configurable": {"thread_id": thread_id}}

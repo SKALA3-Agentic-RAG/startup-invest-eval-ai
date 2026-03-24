@@ -37,9 +37,13 @@ ENV/
 env/
 .env/
 
+# Hugging Face model weights (Qwen embedding, etc.; large)
+models/huggingface/
+
 # Data and Vector Databases
 data/raw/
 data/processed/
+# PDFs in data/pdfs/ are ignored via *.pdf below; .gitkeep keeps the folder in git.
 *.csv
 *.jsonl
 *.pdf

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -34,6 +35,8 @@ class Qwen3HuggingFaceEmbeddings(Embeddings):
         *,
         device: str | None = None,
         token: str | None = None,
+        cache_folder: str | None = None,
+        local_files_only: bool = False,
     ) -> None:
         """
         Load the SentenceTransformer wrapper for the given Hub model id.
@@ -42,14 +45,28 @@ class Qwen3HuggingFaceEmbeddings(Embeddings):
             model_id: Hugging Face repo id (e.g. ``Qwen/Qwen3-Embedding-0.6B``).
             device: Optional torch device string; ``None`` lets the library decide.
             token: Hub token for private/gated models; falls back to env vars.
+            cache_folder: Directory for Hub downloads and SentenceTransformer cache
+                (default library cache is ``~/.cache``; pass a project path to keep weights in-repo).
+            local_files_only: If ``True``, do not access Hugging Face Hub and load
+                strictly from local cache / files.
         """
         self.model_id = model_id
         tok = token or os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_HUB_TOKEN")
         kwargs: dict = {}
         if device:
             kwargs["device"] = device
+        if cache_folder:
+            Path(cache_folder).mkdir(parents=True, exist_ok=True)
+            kwargs["cache_folder"] = cache_folder
+        kwargs["local_files_only"] = local_files_only
         # TODO: Optional speedups — ``model_kwargs={"attn_implementation": "flash_attention_2"}`` on CUDA.
-        self._model = SentenceTransformer(model_id, token=tok, **kwargs)
+        try:
+            self._model = SentenceTransformer(model_id, token=tok, **kwargs)
+        except TypeError:
+            # Backward compatibility for sentence-transformers versions that do not
+            # support ``local_files_only`` on constructor.
+            kwargs.pop("local_files_only", None)
+            self._model = SentenceTransformer(model_id, token=tok, **kwargs)
         logger.info("Loaded embedding model %s", model_id)
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:

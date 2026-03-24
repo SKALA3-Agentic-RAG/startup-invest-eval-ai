@@ -18,6 +18,11 @@ from tools import vector_store, web_search
 logger = logging.getLogger(__name__)
 
 
+def _is_rate_limit_error(exc: Exception) -> bool:
+    txt = f"{type(exc).__name__}: {exc!s}".lower()
+    return "rate limit" in txt or "ratelimit" in txt or "429" in txt
+
+
 def _doc_to_seed(doc: Document) -> tuple[str, str]:
     """Derive (company_name, vector_snippet) from a retrieved document."""
     name = (doc.metadata or {}).get("company_name") or ""
@@ -43,7 +48,24 @@ async def _enrich_candidate(doc: Document) -> StartupProfile:
     company, snippet = _doc_to_seed(doc)
     q = f"{company} startup funding round AI"
     web_hits = await asyncio.to_thread(web_search.search, q)
-    return await asyncio.to_thread(_validate_one, company, snippet, web_hits)
+    attempts = config.OPENAI_RETRY_MAX_ATTEMPTS
+    base = config.OPENAI_RETRY_BASE_SECONDS
+    for attempt in range(1, attempts + 1):
+        try:
+            return await asyncio.to_thread(_validate_one, company, snippet, web_hits)
+        except Exception as exc:  # noqa: BLE001
+            if attempt >= attempts or not _is_rate_limit_error(exc):
+                raise
+            sleep_s = base * (2 ** (attempt - 1))
+            logger.warning(
+                "Rate limit while validating %s (attempt %s/%s); retry in %.1fs",
+                company,
+                attempt,
+                attempts,
+                sleep_s,
+            )
+            await asyncio.sleep(sleep_s)
+    raise RuntimeError("unreachable")
 
 
 async def search_agent(state: GraphState) -> dict:
@@ -62,7 +84,13 @@ async def search_agent(state: GraphState) -> dict:
             logger.info("exit search_agent (kept 0 startups)")
             return {"startups": [], "current_index": 0}
 
-        enriched = await asyncio.gather(*[_enrich_candidate(d) for d in docs])
+        sem = asyncio.Semaphore(config.MAX_PARALLEL_SEARCH_ENRICH)
+
+        async def _bounded_enrich(doc: Document) -> StartupProfile:
+            async with sem:
+                return await _enrich_candidate(doc)
+
+        enriched = await asyncio.gather(*[_bounded_enrich(d) for d in docs])
         filtered = [p for p in enriched if p.is_startup][: config.MAX_STARTUPS]
         out = {
             "startups": [p.model_dump() for p in filtered],

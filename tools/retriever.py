@@ -24,13 +24,9 @@ def _normalize_url(url: str) -> str:
 
 def faiss_mmr_documents(query: str, k: int = 5, fetch_k: int = 20) -> List[Document]:
     """Maximal marginal relevance over the persisted FAISS index."""
-    path = str(config.FAISS_INDEX_PATH)
-    try:
-        store = vector_store.load_index(path)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("FAISS MMR skipped: %s", exc)
-        return []
-    return store.max_marginal_relevance_search(query, k=k, fetch_k=fetch_k)
+    return vector_store.max_marginal_relevance_search(
+        query, k=k, fetch_k=fetch_k, path=str(config.FAISS_INDEX_PATH)
+    )
 
 
 def web_results_as_documents(query: str) -> List[Document]:
