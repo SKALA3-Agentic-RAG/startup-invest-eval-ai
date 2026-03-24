@@ -9,6 +9,10 @@ class InvestDecision(BaseModel):
     """Per-startup investment stance."""
 
     company_name: str
+    tech_score: float = Field(ge=0, le=10, description="Technical score derived in decision stage")
+    market_score: float = Field(ge=0, le=10, description="Market score derived in decision stage")
+    total_score: float = Field(ge=0, le=10, description="Weighted total score")
+    rank: int = Field(ge=1, description="Rank among candidates by total_score (1 is best)")
     decision: str = Field(description='One of "GO", "WATCH", "PASS"')
     rationale: str
     key_risks: List[str] = Field(default_factory=list)

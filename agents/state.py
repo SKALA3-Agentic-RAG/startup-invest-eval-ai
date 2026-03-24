@@ -58,22 +58,24 @@ class GraphState(TypedDict, total=False):
     tech_evals: Annotated[
         list[TechEvalDict],
         Doc(
-            "Technical assessments (one dict per startup). Filled by ``parallel_startup_eval`` "
-            "together with ``market_evals``; reducer: ``operator.add``."
+            "Technical analysis contexts (one dict per startup). Filled by "
+            "``parallel_startup_eval`` together with ``market_evals``; reducer: "
+            "``operator.add``."
         ),
         operator.add,
     ]
     market_evals: Annotated[
         list[MarketEvalDict],
         Doc(
-            "Market assessments (one dict per startup). Filled in parallel with ``tech_evals``; "
-            "``scoring_agent`` joins on ``company_name``. Reducer: ``operator.add``."
+            "Market analysis contexts (one dict per startup). Filled in parallel with "
+            "``tech_evals``; ``decision_agent`` consumes both sets. Reducer: "
+            "``operator.add``."
         ),
         operator.add,
     ]
     scores: Annotated[
         list[ScoreCardDict],
-        Doc("Weighted scores and ranks from ``scoring_agent`` (full list replacement)."),
+        Doc("Weighted scores and ranks produced in ``decision_agent``."),
     ]
     invest_decisions: Annotated[
         list[InvestDecisionDict],

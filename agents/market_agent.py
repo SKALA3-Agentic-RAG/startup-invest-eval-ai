@@ -41,4 +41,14 @@ def _run_market_eval_for_startup(state: GraphState, raw: dict[str, Any]) -> Mark
             "context": context,
         }
     )
-    return me.model_dump()
+    # Upstream scoring is moved to ``decision_agent``; keep market stage qualitative.
+    analysis_context = (
+        f"tam_usd_bn={me.tam_usd_bn}\n"
+        f"growth_rate_pct={me.growth_rate_pct}\n"
+        f"competition_level={me.competition_level}\n"
+        f"rationale={me.rationale}"
+    )
+    return {
+        "company_name": me.company_name,
+        "analysis_context": analysis_context,
+    }

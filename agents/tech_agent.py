@@ -41,4 +41,14 @@ def _run_tech_eval_for_startup(state: GraphState, raw: dict[str, Any]) -> TechEv
             "context": context,
         }
     )
-    return te.model_dump()
+    # Upstream scoring is moved to ``decision_agent``; keep tech stage qualitative.
+    analysis_context = (
+        f"innovation_level={te.innovation_level}\n"
+        f"ip_strength={te.ip_strength}\n"
+        f"tech_risk={te.tech_risk}\n"
+        f"rationale={te.rationale}"
+    )
+    return {
+        "company_name": te.company_name,
+        "analysis_context": analysis_context,
+    }

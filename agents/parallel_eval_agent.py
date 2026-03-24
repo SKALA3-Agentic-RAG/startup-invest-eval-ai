@@ -1,4 +1,4 @@
-"""Run tech and market evaluations in parallel (independent; joined by ``company_name`` in scoring)."""
+"""Run tech and market analyses in parallel (joined later in ``decision_agent``)."""
 
 from __future__ import annotations
 
@@ -24,10 +24,8 @@ async def parallel_startup_eval(state: GraphState) -> dict:
 
     All per-startup tasks use :func:`asyncio.to_thread` (sync LLM/RAG). Tech and market
     batches are awaited together with :func:`asyncio.gather`, so there is no ordering
-    constraint between the two dimensions—``scoring_agent`` matches rows by
+    constraint between the two dimensions—``decision_agent`` joins rows by
     ``company_name`` only.
-
-    TODO: Cap concurrency with ``asyncio.Semaphore`` if APIs rate-limit.
     """
     logger.info("enter parallel_startup_eval")
     try:
