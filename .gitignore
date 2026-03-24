@@ -44,6 +44,9 @@ data/processed/
 *.jsonl
 *.pdf
 
+# LangGraph SQLite checkpoints (local)
+output/checkpoints.db
+
 # Local Vector Stores
 faiss_index/
 chroma_db/
