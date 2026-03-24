@@ -45,15 +45,6 @@
 └── README.md
 ```
 
-## RAG Evaluation (FAISS)
-
-- Metric: `Hit Rate@k`, `MRR@k`
-- Eval dataset(JSONL): `data/eval/rag_eval.jsonl`
-  - line format: `{"query":"...", "gold_sources":["c_robotics.pdf","k1_robotics.pdf"]}`
-- Run:
-  - `python -m tools.rag_eval --k 5`
-  - optional details: `python -m tools.rag_eval --k 10 --save-details output/rag_eval/result_k10.json`
-
 ## Contributors 
 - 김지온 : 입력 키 정의 및 투자 가이드라인 Metrics 설계, 프롬프트 입력 키 정의 및 시스템 프롬프트 엔지니어링
 - 김철희 : End-to-End Query 파이프라인 설계 및 전체 아키텍처 조율, LangGraph Node 연결
