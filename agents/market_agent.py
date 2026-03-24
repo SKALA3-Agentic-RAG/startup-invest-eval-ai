@@ -1,12 +1,13 @@
-"""Market sizing and traction evaluation."""
+"""Market evaluation helpers (used by ``parallel_eval_agent``)."""
 
 from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 
 import config
-from agents.state import GraphState
+from agents.state import GraphState, MarketEvalDict
 from prompts.market_eval import PROMPT
 from schemas.evaluation import MarketEval
 from schemas.startup import StartupProfile
@@ -23,36 +24,21 @@ def _format_docs(docs: list) -> str:
     return "\n\n".join(parts)[:24000]
 
 
-def market_agent(state: GraphState) -> dict:
-    """Evaluate market for the current startup and advance ``current_index``."""
-    logger.info("enter market_agent")
-    try:
-        startups = state.get("startups") or []
-        idx = int(state.get("current_index", 0))
-        if idx >= len(startups):
-            logger.info("exit market_agent (no startup at index)")
-            return {}
-        raw = startups[idx]
-        profile = StartupProfile.model_validate(raw)
-        ctx_docs = retriever.merge_context(
-            query=state.get("query", ""),
-            company_name=profile.company_name,
-        )
-        context = _format_docs(ctx_docs)
-        llm = config.get_chat_llm().with_structured_output(MarketEval)
-        chain = PROMPT | llm
-        me: MarketEval = chain.invoke(
-            {
-                "macro_context": state.get("macro_context") or "",
-                "startup_json": json.dumps(raw, ensure_ascii=False),
-                "context": context,
-            }
-        )
-        logger.info("exit market_agent (index %s -> %s)", idx, idx + 1)
-        return {
-            "market_evals": [me.model_dump()],
-            "current_index": idx + 1,
+def _run_market_eval_for_startup(state: GraphState, raw: dict[str, Any]) -> MarketEvalDict:
+    """Synchronous market evaluation for one startup dict (runs in a worker thread)."""
+    profile = StartupProfile.model_validate(raw)
+    ctx_docs = retriever.merge_context(
+        query=state.get("query", ""),
+        company_name=profile.company_name,
+    )
+    context = _format_docs(ctx_docs)
+    llm = config.get_chat_llm().with_structured_output(MarketEval)
+    chain = PROMPT | llm
+    me: MarketEval = chain.invoke(
+        {
+            "macro_context": state.get("macro_context") or "",
+            "startup_json": json.dumps(raw, ensure_ascii=False),
+            "context": context,
         }
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("market_agent failed")
-        return {"error": f"market_agent: {exc!s}"}
+    )
+    return me.model_dump()

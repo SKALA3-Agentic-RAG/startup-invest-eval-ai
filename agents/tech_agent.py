@@ -1,12 +1,13 @@
-"""Technical deep-dive using hybrid RAG context."""
+"""Technical evaluation helpers (used by ``parallel_eval_agent``)."""
 
 from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 
 import config
-from agents.state import GraphState
+from agents.state import GraphState, TechEvalDict
 from prompts.tech_eval import PROMPT
 from schemas.evaluation import TechEval
 from schemas.startup import StartupProfile
@@ -23,33 +24,21 @@ def _format_docs(docs: list) -> str:
     return "\n\n".join(parts)[:24000]
 
 
-def tech_agent(state: GraphState) -> dict:
-    """Run technical evaluation for ``startups[current_index]``."""
-    logger.info("enter tech_agent")
-    try:
-        startups = state.get("startups") or []
-        idx = int(state.get("current_index", 0))
-        if idx >= len(startups):
-            logger.info("exit tech_agent (no startup at index)")
-            return {}
-        raw = startups[idx]
-        profile = StartupProfile.model_validate(raw)
-        ctx_docs = retriever.merge_context(
-            query=state.get("query", ""),
-            company_name=profile.company_name,
-        )
-        context = _format_docs(ctx_docs)
-        llm = config.get_chat_llm().with_structured_output(TechEval)
-        chain = PROMPT | llm
-        te: TechEval = chain.invoke(
-            {
-                "macro_context": state.get("macro_context") or "",
-                "startup_json": json.dumps(raw, ensure_ascii=False),
-                "context": context,
-            }
-        )
-        logger.info("exit tech_agent")
-        return {"tech_evals": [te.model_dump()]}
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("tech_agent failed")
-        return {"error": f"tech_agent: {exc!s}"}
+def _run_tech_eval_for_startup(state: GraphState, raw: dict[str, Any]) -> TechEvalDict:
+    """Synchronous tech evaluation for one ``StartupProfile`` dict (runs in a worker thread)."""
+    profile = StartupProfile.model_validate(raw)
+    ctx_docs = retriever.merge_context(
+        query=state.get("query", ""),
+        company_name=profile.company_name,
+    )
+    context = _format_docs(ctx_docs)
+    llm = config.get_chat_llm().with_structured_output(TechEval)
+    chain = PROMPT | llm
+    te: TechEval = chain.invoke(
+        {
+            "macro_context": state.get("macro_context") or "",
+            "startup_json": json.dumps(raw, ensure_ascii=False),
+            "context": context,
+        }
+    )
+    return te.model_dump()

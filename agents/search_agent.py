@@ -46,30 +46,29 @@ async def _enrich_candidate(doc: Document) -> StartupProfile:
     return await asyncio.to_thread(_validate_one, company, snippet, web_hits)
 
 
-async def _search_async(state: GraphState) -> dict:
-    query = state.get("query", "")
-    docs = vector_store.search(query, k=10)
-    if not docs:
-        logger.warning("No FAISS hits — build an index under output/vectordb (see vector_store).")
-        return {"startups": [], "current_index": 0}
-
-    enriched = await asyncio.gather(*[_enrich_candidate(d) for d in docs])
-    filtered = [p for p in enriched if p.is_startup][: config.MAX_STARTUPS]
-    return {
-        "startups": [p.model_dump() for p in filtered],
-        "current_index": 0,
-    }
-
-
-def search_agent(state: GraphState) -> dict:
+async def search_agent(state: GraphState) -> dict:
     """
     Retrieve top-k from FAISS, validate each candidate with Tavily + structured LLM,
     then keep only ``is_startup`` profiles.
+
+    Async so it can run under :meth:`graph.astream` without nested :func:`asyncio.run`.
     """
     logger.info("enter search_agent")
     try:
-        out = asyncio.run(_search_async(state))
-        logger.info("exit search_agent (kept %s startups)", len(out.get("startups", [])))
+        query = state.get("query", "")
+        docs = vector_store.search(query, k=10)
+        if not docs:
+            logger.warning("No FAISS hits — build an index under output/vectordb (see vector_store).")
+            logger.info("exit search_agent (kept 0 startups)")
+            return {"startups": [], "current_index": 0}
+
+        enriched = await asyncio.gather(*[_enrich_candidate(d) for d in docs])
+        filtered = [p for p in enriched if p.is_startup][: config.MAX_STARTUPS]
+        out = {
+            "startups": [p.model_dump() for p in filtered],
+            "current_index": 0,
+        }
+        logger.info("exit search_agent (kept %s startups)", len(out["startups"]))
         return out
     except Exception as exc:  # noqa: BLE001
         logger.exception("search_agent failed")

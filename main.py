@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import logging
 import sys
 import uuid
@@ -10,10 +11,27 @@ from datetime import datetime, timezone
 
 import config as app_config
 from agents.graph import build_graph
+from memory.checkpointer import async_checkpointer
+
+
+async def _run_async(lg_config: dict, initial_state: dict) -> dict:
+    """
+    Run the graph under an async SQLite checkpointer and return final state values.
+
+    Uses ``astream`` because several nodes are ``async def`` (parallel eval + search).
+    """
+    async with async_checkpointer() as checkpointer:
+        graph = build_graph(checkpointer)
+        async for step in graph.astream(initial_state, config=lg_config, stream_mode="updates"):
+            for node_name, payload in step.items():
+                print(f"\n=== node: {node_name} ===")
+                print(payload)
+        snap = await graph.aget_state(lg_config)
+        return snap.values or {}
 
 
 def main() -> None:
-    """Parse args, run the graph with a SQLite checkpointer, and save the report."""
+    """Parse args, run the graph with checkpointing, and save the report."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(levelname)s %(name)s — %(message)s",
@@ -39,7 +57,6 @@ def main() -> None:
 
     thread_id = args.thread_id or str(uuid.uuid4())
     lg_config = {"configurable": {"thread_id": thread_id}}
-    graph = build_graph()
 
     initial_state = {
         "query": args.query,
@@ -55,13 +72,8 @@ def main() -> None:
     }
 
     logging.info("Starting run (thread_id=%s)", thread_id)
-    for step in graph.stream(initial_state, config=lg_config, stream_mode="updates"):
-        for node_name, payload in step.items():
-            print(f"\n=== node: {node_name} ===")
-            print(payload)
+    values = asyncio.run(_run_async(lg_config, initial_state))
 
-    snapshot = graph.get_state(lg_config)
-    values = snapshot.values or {}
     report_md = values.get("final_report")
     err = values.get("error")
 

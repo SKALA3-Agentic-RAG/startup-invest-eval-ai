@@ -5,15 +5,15 @@ from __future__ import annotations
 import logging
 from typing import List
 
-from langchain_community.document_loaders import PyPDFLoader, WebBaseLoader
+from langchain_community.document_loaders import PyMuPDFLoader, WebBaseLoader
 from langchain_core.documents import Document
 
 logger = logging.getLogger(__name__)
 
 
 def load_pdf(path: str) -> List[Document]:
-    """Load a single PDF path into documents (one chunk per page by default)."""
-    loader = PyPDFLoader(path)
+    """Load a single PDF path into documents (one LangChain ``Document`` per page)."""
+    loader = PyMuPDFLoader(path, mode="page")
     docs = loader.load()
     logger.info("Loaded PDF %s (%s chunks)", path, len(docs))
     return docs
